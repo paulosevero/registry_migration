@@ -1,5 +1,36 @@
 # Registry Migration
 
+## Repository Structure
+
+Within the repository, you'll find the following directories and files, logically grouping common assets used to simulate maintenance of edge computing infrastructures. You'll see something like this:
+
+```
+├── datasets/
+│   ├── dataset1.json
+│   └── example1.json
+├── edge_sim_py/
+│   ├── component_builders/
+│   ├── components/
+│   ├── dataset_generator.py
+│   ├── heuristics/
+│   │   └── migration/
+│   │       ├── follow_vehicle.py
+│   │       └── never_follow.py
+│   ├── __main__.py
+│   ├── object_collection.py
+│   └── simulator.py
+├── poetry.lock
+└── pyproject.toml
+```
+
+In the root directory, the `pyproject.toml` file organizes all project dependencies, including the minimum required version of the Python language. This file guides the execution of the Poetry library, which installs the simulator securely, avoiding conflicts with external dependencies.
+
+> Modifications made to the pyproject.toml file are automatically inserted into poetry.lock whenever Poetry is called.
+
+The "datasets" directory contains JSON files describing the components that will be simulated during the experiments. We can create custom datasets modifying the `dataset_generator.py` file, located inside the "edge_sim_py" directory.
+
+The "edge_sim_py/heuristics" directory accommodates the source code for the migration strategies used in the simulator.
+
 ## Installation Guide
 
 Project dependencies are available for Linux, Windows and MacOS. However, we highly recommend using a recent version of a Debian-based Linux distribution. The installation below was validated on **Ubuntu 20.04.1 LTS**.
