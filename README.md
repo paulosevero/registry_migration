@@ -29,3 +29,11 @@ poetry install
 ```
 
 After a few moments, Poetry will have installed all the dependencies needed by the simulator and we will be ready to run the experiments.
+
+## Usage Guide
+
+Once we are inside Poetry's virtual environment, we just need to execute the main simulation file through the command below. We can customize which heuristics are executed by modifying the `edge_sim_py/__main__.py` file.
+
+```bash
+python3 -B -m edge_sim_py
+```
