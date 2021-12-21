@@ -18,6 +18,8 @@ class Application(ObjectCollection):
         Returns:
             object: Created Application object.
         """
+        if obj_id is None:
+            obj_id = Application.count() + 1
         self.id = obj_id
 
         self.services = []

@@ -1,66 +1,58 @@
-""" Contains edge server builder functionality.
-"""
-from edge_sim_py.component_builders.basic_builder import BasicBuilder
+""" Contains a set of methods used to create edge servers."""
+# EdgeSimPy components
 from edge_sim_py.components.base_station import BaseStation
 from edge_sim_py.components.edge_server import EdgeServer
 
+# Component builders
+from edge_sim_py.component_builders.distributions_builder import uniform
 
-class EdgeServerBuilder(BasicBuilder):
-    """Class responsible for building edge server objects."""
+# Python libraries
+import random
 
-    def __init__(self) -> object:
-        """Creates a builder responsible for creating edge server objects.
-        Returns:
-            object: Created EdgeServerBuilder object.
-        """
-        BasicBuilder.__init__(self)
 
-    def create_objects(self, n_objects: int) -> list:
-        """Creates a list of EdgeServer objects.
-        Args:
-            n_objects (int): Number of EdgeServer objects to create.
-        Returns:
-            list: Created EdgeServer objects.
-        """
-        self.objects = [EdgeServer(obj_id=i + 1) for i in range(n_objects)]
-        return self.objects
+def edge_server_builder(seed: int, number_of_objects: int, capacities: list, power_models: list = []):
+    """Creates a set of edge servers with user-defined capacities and power models.
 
-    def set_coordinates_all_edge_servers(self, coordinates: list) -> list:
-        """Defines the coordinates for edge server objects.
-        Args:
-            coordinates (list): Coordinates assigned to the edge server objects.
-        Returns:
-            edge_servers (list): Modified EdgeServer objects.
-        """
-        for index, edge_server in enumerate(self.objects):
-            edge_server.coordinates = coordinates[index]
+    Args:
+        seed (int): Constant value used to enable reproducibility.
+        number_of_objects (int): Number of edge servers to create.
+        capacities (list): List of capacity values that will be assigned to the edge servers.
+        power_models (list, optional): List of power models that will be assigned to the edge servers.
 
-            base_station = BaseStation.find_by(attribute_name="coordinates", attribute_value=edge_server.coordinates)
-            edge_server.base_station = base_station
-            base_station.edge_servers.append(base_station)
+    Raises:
+        ValueError: Number of edge servers must be less than the number of base stations.
+    """
+    if number_of_objects > BaseStation.count():
+        raise ValueError(
+            "Number of edge servers must be less than the number of base stations. Please increase the size of the map."
+        )
 
-        return self.objects
+    # Defining a seed value to enable reproducibility
+    random.seed(seed)
 
-    def set_capacity_all_edge_servers(self, capacity_values: list) -> list:
-        """Defines the capacity for edge server objects.
-        Args:
-            capacity_values (list): Capacity values assigned to the edge server objects.
-        Returns:
-            edge_servers (list): Modified EdgeServer objects.
-        """
-        for index, edge_server in enumerate(self.objects):
-            edge_server.capacity = capacity_values[index]
+    # Defining capacity values for each edge server according to user-defined values ("capacities")
+    capacity_values = uniform(seed=seed, n_items=number_of_objects, valid_values=capacities)
 
-        return self.objects
+    # Defining power models for each edge server according to user-defined values ("power_models")
+    power_model_values = uniform(seed=seed, n_items=number_of_objects, valid_values=power_models)
 
-    def set_update_status_all_edge_servers(self, update_status_values: list) -> list:
-        """Defines the update status for edge server objects.
-        Args:
-            update_status_values (list): Update status values assigned to the edge server objects.
-        Returns:
-            edge_servers (list): Modified EdgeServer objects.
-        """
-        for index, edge_server in enumerate(self.objects):
-            edge_server.updated = update_status_values[index]
+    # Defining power-related attributes for edge servers
+    max_power = 100
+    max_proportional_capacity = max(capacity_values)
+    static_power_percentage = 0.2
 
-        return self.objects
+    for i in range(number_of_objects):
+        # Picking a random base station
+        base_station = random.choice([bs for bs in BaseStation.all() if len(bs.edge_servers) == 0])
+
+        # Creating the edge server object
+        edge_server = EdgeServer(capacity=capacity_values[i], power_model=power_model_values[i])
+
+        # Assigning power-related attributes for the edge server
+        edge_server.max_power = max_power * (edge_server.capacity / max_proportional_capacity)
+        edge_server.static_power_percentage = static_power_percentage
+
+        # Connecting the edge server to the base station
+        edge_server.coordinates = base_station.coordinates
+        edge_server.base_station = base_station
+        base_station.edge_servers.append(edge_server)

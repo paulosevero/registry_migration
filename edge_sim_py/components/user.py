@@ -1,6 +1,7 @@
 """ Contains users functionality.
 """
 from edge_sim_py.object_collection import ObjectCollection
+from edge_sim_py.components.topology import Topology
 from edge_sim_py.components.base_station import BaseStation
 import networkx as nx
 
@@ -11,16 +12,18 @@ class User(ObjectCollection):
     # Class attribute that allows this class to use helper methods from ObjectCollection
     instances = []
 
-    def __init__(self, obj_id: int, coordinates_trace: list = []) -> object:
+    def __init__(self, obj_id: int = None, coordinates_trace: list = []) -> object:
         """Creates an User object.
 
         Args:
-            obj_id (int): Object identifier.
+            obj_id (int, optional): Object identifier.
             coordinates_trace (list, optional): Set of user coordinates for all simulation time steps.
 
         Returns:
             object: Created User object.
         """
+        if obj_id is None:
+            obj_id = User.count() + 1
         self.id = obj_id
 
         self.coordinates_trace = coordinates_trace
@@ -35,6 +38,7 @@ class User(ObjectCollection):
         self.communication_paths = {}
         self.delays = {}
         self.delay_slas = {}
+        self.provisioning_time_slas = {}
 
         # Reference to the Simulator object
         self.simulator = None
@@ -68,14 +72,14 @@ class User(ObjectCollection):
         Returns:
             int: Application delay.
         """
-
+        topology = Topology.first()
         try:
             # Initializes the application's delay with the time it takes to communicate its client and his base station
             delay = self.base_station.wireless_delay
 
             # Adding the communication path delay to the application's delay
             communication_path = self.communication_paths[app]
-            delay += self.simulator.topology.calculate_path_delay(path=communication_path)
+            delay += topology.calculate_path_delay(path=communication_path)
 
             if metric.lower() == "response time":
                 # We assume that Response Time = Latency * 2
@@ -99,11 +103,11 @@ class User(ObjectCollection):
         Returns:
             list: Updated communication path.
         """
+        topology = Topology.first()
+
         # Releasing links used in the past to connect the user with its application
         if app in self.communication_paths:
-            self.simulator.topology.release_communication_path(
-                communication_path=self.communication_paths[app], app=app
-            )
+            topology.release_communication_path(communication_path=self.communication_paths[app], app=app)
 
         # Defining communication path
         if len(communication_path) > 0:
@@ -126,7 +130,6 @@ class User(ObjectCollection):
                 )
 
                 # Finding the best communication path
-                topology = self.simulator.topology
                 path = nx.shortest_path(
                     G=topology,
                     source=origin,
@@ -138,12 +141,10 @@ class User(ObjectCollection):
                 self.communication_paths[app].extend(path)
 
         # Removing duplicated entries in the communication path to avoid NetworkX crashes
-        self.communication_paths[app] = self.simulator.topology.remove_path_duplicates(
-            path=self.communication_paths[app]
-        )
+        self.communication_paths[app] = topology.remove_path_duplicates(path=self.communication_paths[app])
 
         # Computing the new demand of chosen links
-        self.simulator.topology.allocate_communication_path(communication_path=self.communication_paths[app], app=app)
+        topology.allocate_communication_path(communication_path=self.communication_paths[app], app=app)
 
         # Computing application's delay
         self.compute_delay(app=app, metric="latency")

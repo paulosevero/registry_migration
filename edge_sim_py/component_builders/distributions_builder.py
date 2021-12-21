@@ -3,11 +3,12 @@
 import random
 
 
-def uniform(n_items: int, valid_values: list, shuffle_distribution: bool = True) -> list:
+def uniform(seed: int, n_items: int, valid_values: list, shuffle_distribution: bool = True) -> list:
     """Creates a list of size "n_items" with values from "valid_values" according to the uniform distribution.
     By default, the method shuffles the created list to avoid unbalanced spread of the distribution.
 
     Args:
+        seed (int): Constant value used to enable reproducibility.
         n_items (int): Number of items that will be created.
         valid_values (list): List of valid values for the list of values.
         shuffle_distribution (bool, optional): Defines whether the distribution is shuffled or not. Defaults to True.
@@ -20,6 +21,9 @@ def uniform(n_items: int, valid_values: list, shuffle_distribution: bool = True)
     """
     if not isinstance(valid_values, list) or isinstance(valid_values, list) and len(valid_values) == 0:
         raise Exception("You must inform a list of valid values within the 'valid_values' attribute.")
+
+    # Defining a seed value to enable reproducibility
+    random.seed(seed)
 
     # Number of occurrences that will be created of each item in the "valid_values" list
     distribution = [int(n_items / len(valid_values)) for _ in range(0, len(valid_values))]

@@ -75,7 +75,7 @@ class Topology(ObjectCollection, nx.Graph):
             link["id"] = index + 1
             link["delay"] = delay
             link["bandwidth"] = bandwidth
-            link["demand"] = 0
+            link["bandwidth_demand"] = 0
 
         return barabasi_albert_topology
 

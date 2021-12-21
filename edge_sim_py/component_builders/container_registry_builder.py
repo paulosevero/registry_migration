@@ -1,49 +1,97 @@
-""" Contains container registry builder functionality.
-"""
-from edge_sim_py.component_builders.basic_builder import BasicBuilder
+""" Contains a set of methods used to create a container registries and container images."""
+# EdgeSimPy components
+from edge_sim_py.components.topology import Topology
+from edge_sim_py.components.edge_server import EdgeServer
 from edge_sim_py.components.container_registry import ContainerRegistry
+from edge_sim_py.components.container_image import ContainerImage
+
+# Component builders
+from edge_sim_py.component_builders.distributions_builder import uniform
+
+# Python libraries
+import random
+import networkx as nx
+from cdlib import algorithms
 
 
-class ContainerRegistryBuilder(BasicBuilder):
-    """Class responsible for building container registry objects."""
+def container_registry_builder(
+    seed: int,
+    number_of_objects: int,
+    images: list,
+    placement: str = "Random",
+):
+    """Creates a set of container registries accommodating container images.
 
-    def __init__(self) -> object:
-        """Creates a builder responsible for creating container registry objects.
-        Returns:
-            object: Created ContainerRegistryBuilder object.
-        """
-        BasicBuilder.__init__(self)
+    Args:
+        seed (int): Constant value used to enable reproducibility.
+        number_of_objects (int): Number of container registries to create.
+        images (list): List of metadata about the container images to create.
+        placement (str, optional): Initial placement scheme name. Defaults to "Random".
+    """
+    # Defining a seed value to enable reproducibility
+    random.seed(seed)
 
-    def create_objects(self, n_objects: int) -> list:
-        """Creates a list of ContainerRegistry objects.
-        Args:
-            n_objects (int): Number of ContainerRegistry objects to create.
-        Returns:
-            list: Created ContainerRegistry objects.
-        """
-        self.objects = [ContainerRegistry(obj_id=i + 1) for i in range(n_objects)]
-        return self.objects
+    if placement == "Community Based":
+        # Finding communities in the topology with the Louvain algorithm and re-defining the number of objects to create
+        communities = algorithms.louvain(Topology.first(), resolution=1.0, randomize=False).communities
+        number_of_objects = len(communities)
+    else:
+        communities = []
 
-    def set_base_footprint_all_container_registries(self, base_footprint_values: list) -> list:
-        """Defines the base footprint for ContainerRegistry objects.
-        Args:
-            base_footprint_values (list): Base footprint values assigned to the ContainerRegistry objects.
-        Returns:
-            container_registries (list): Modified ContainerRegistry objects.
-        """
-        for index, container_registry in enumerate(self.objects):
-            container_registry.base_footprint = base_footprint_values[index]
+    for _ in range(number_of_objects):
+        # Creating the container registry object
+        container_registry = ContainerRegistry()
 
-        return self.objects
+        # Assigning container images to the container registry
+        for image_data in images:
+            image = ContainerImage(size=image_data["size"], name=image_data["name"], layer=image_data["layer"])
+            image.container_registry = container_registry
+            container_registry.images.append(image)
 
-    def set_provisioning_time_all_container_registries(self, provisioning_time_values: list) -> list:
-        """Defines the provisioning time for ContainerRegistry objects.
-        Args:
-            provisioning_time_values (list): Provisioning time values assigned to the ContainerRegistry objects.
-        Returns:
-            container_registries (list): Modified ContainerRegistry objects.
-        """
-        for index, container_registry in enumerate(self.objects):
-            container_registry.provisioning_time = provisioning_time_values[index]
+    # Defining a placement scheme for container registries
+    set_container_registry_placement(placement=placement, communities=communities)
 
-        return self.objects
+
+def set_container_registry_placement(placement: str = "Random", communities: list = []):
+    """Defines the initial placement scheme for container registries.
+
+    Args:
+        placement (str, optional): Initial container registry placement scheme name. Defaults to "Random".
+        communities (list, optional): List of communities formed in the network. Defaults to [].
+    """
+    # Defines a random initial container registry placement
+    if placement == "Random":
+        for registry in ContainerRegistry.all():
+            random_server = random.choice(EdgeServer.all())
+
+            while random_server.capacity - random_server.demand < registry.demand():
+                random_server = random.choice(EdgeServer.all())
+
+            random_server.container_registries.append(registry)
+            registry.server = random_server
+            random_server.demand += registry.demand()
+
+    # Defines the initial placement of container registries based on a community-based scheme
+    elif placement == "Community Based":
+        # Finding the best set of edge servers to accommodate container registries
+        for index, registry in enumerate(ContainerRegistry.all()):
+            # Creating a subgraph with the community that corresponds to the container registry
+            community = communities[index]
+            subgraph = Topology.first().subgraph(community)
+
+            # Calculating the closeness centrality of nodes that belong to the subgraph (bandwidth is used as weight)
+            closeness_centrality_of_nodes = nx.algorithms.centrality.closeness_centrality(
+                subgraph, u=None, distance="bandwidth", wf_improved=True
+            )
+
+            # Finding the node with the highest closeness centrality with resources to accommodate the registry
+            community_nodes = sorted(list(closeness_centrality_of_nodes.items()), key=lambda x: x[1], reverse=True)
+            for node in community_nodes:
+                if len(node[0].edge_servers) > 0:
+                    edge_server = node[0].edge_servers[0]
+
+                    if edge_server.capacity >= edge_server.get_demand() + registry.demand():
+                        edge_server.container_registries.append(registry)
+                        registry.server = edge_server
+                        edge_server.demand += registry.demand()
+                        break

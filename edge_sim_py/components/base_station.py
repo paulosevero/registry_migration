@@ -20,6 +20,8 @@ class BaseStation(ObjectCollection):
         Returns:
             object: Created BaseStation object.
         """
+        if obj_id is None:
+            obj_id = BaseStation.count() + 1
         self.id = obj_id
 
         self.coordinates = coordinates
@@ -27,10 +29,6 @@ class BaseStation(ObjectCollection):
         self.users = []
         self.edge_servers = []
         self.wireless_delay = wireless_delay
-
-        # Power Features
-        self.chassis_power = 0
-        self.power_model = None
 
         # Reference to the Simulator object
         self.simulator = None
@@ -53,10 +51,3 @@ class BaseStation(ObjectCollection):
             str: Object representation.
         """
         return f"BaseStation_{self.id}"
-    
-    
-    def get_power_consumption(self) -> float:
-        if self.power_model is not None:
-            return self.power_model.get_power_consumption(device=self)
-        return 0
-    

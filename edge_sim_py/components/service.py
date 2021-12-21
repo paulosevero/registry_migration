@@ -22,6 +22,8 @@ class Service(ObjectCollection):
         Returns:
             object: Created Service object.
         """
+        if obj_id is None:
+            obj_id = Service.count() + 1
         self.id = obj_id
 
         self.demand = demand
@@ -65,17 +67,6 @@ class Service(ObjectCollection):
         Returns:
             migration_time (int): Service migration time.
         """
-        # Finding a network path to migrate the service to the target host in case path is not provided
-        if len(path) == 0 and self.server is not None:
-            path = nx.shortest_path(
-                G=self.simulator.topology,
-                source=self.server.base_station,
-                target=target_server.base_station,
-                weight="bandwidth",
-            )
-        else:
-            path = []
-
         # Calculating service migration time
         migration_time = self.get_migration_time(target_server=target_server)
 
@@ -120,7 +111,13 @@ class Service(ObjectCollection):
                 origin = layer_available.container_registry.server.base_station
                 destination = target_server.base_station
                 if origin == destination:
-                    layers_available.append({"layer": layer_available, "migration_time": 0})
+                    layers_available.append(
+                        {
+                            "layer": layer_available,
+                            "migration_time": 0,
+                            "registry": layer_available.container_registry.server.base_station,
+                        }
+                    )
                 else:
                     path = nx.shortest_path(
                         G=topology,
@@ -140,10 +137,19 @@ class Service(ObjectCollection):
                     for _ in range(len(path) - 1):
                         migration_time += layer_available.size / bandwidth
 
-                    layers_available.append({"layer": layer_available, "migration_time": migration_time})
+                    layers_available.append(
+                        {
+                            "layer": layer_available,
+                            "migration_time": migration_time,
+                            "registry": layer_available.container_registry.server.base_station,
+                        }
+                    )
 
             best_layer_available = sorted(layers_available, key=lambda l: l["migration_time"])[0]
-            selected_layers.append(best_layer_available["migration_time"])
+            selected_layers.append(best_layer_available)
 
-        migration_time = sum(selected_layers)
+        migration_time = sum([layer["migration_time"] for layer in selected_layers])
+
+        # print(f"\n        {self}. Migration Time: {migration_time}. Layers: {selected_layers}")
+
         return migration_time
