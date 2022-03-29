@@ -6,16 +6,16 @@ Within the repository, you'll find the following directories and files, logicall
 
 ```
 ├── datasets/
-│   ├── dataset1.json
-│   └── example1.json
+│   ├── dataset_25occupation.json
+│   ├── dataset_50occupation.json
+│   └── dataset_75occupation.json
 ├── simulator/
 │   ├── component_builders/
 │   ├── components/
 │   ├── dataset_generator.py
 │   ├── algorithms/
-│   │   └── migration/
-│   │       ├── follow_vehicle.py
-│   │       └── never_follow.py
+│   │   ├── follow_vehicle.py
+│   │   └── never_follow.py
 │   ├── __main__.py
 │   ├── object_collection.py
 │   └── simulator.py
