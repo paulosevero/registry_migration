@@ -8,11 +8,11 @@ Within the repository, you'll find the following directories and files, logicall
 ├── datasets/
 │   ├── dataset1.json
 │   └── example1.json
-├── edge_sim_py/
+├── simulator/
 │   ├── component_builders/
 │   ├── components/
 │   ├── dataset_generator.py
-│   ├── heuristics/
+│   ├── algorithms/
 │   │   └── migration/
 │   │       ├── follow_vehicle.py
 │   │       └── never_follow.py
@@ -27,9 +27,9 @@ In the root directory, the `pyproject.toml` file organizes all project dependenc
 
 > Modifications made to the pyproject.toml file are automatically inserted into poetry.lock whenever Poetry is called.
 
-The "datasets" directory contains JSON files describing the components that will be simulated during the experiments. We can create custom datasets modifying the `dataset_generator.py` file, located inside the "edge_sim_py" directory.
+The "datasets" directory contains JSON files describing the components that will be simulated during the experiments. We can create custom datasets modifying the `dataset_generator.py` file, located inside the "simulator" directory.
 
-The "edge_sim_py/heuristics" directory accommodates the source code for the migration strategies used in the simulator.
+The "simulator/algorithms" directory accommodates the source code for the migration strategies used in the simulator.
 
 ## Installation Guide
 
@@ -63,8 +63,19 @@ After a few moments, Poetry will have installed all the dependencies needed by t
 
 ## Usage Guide
 
-Once we are inside Poetry's virtual environment, we just need to execute the main simulation file through the command below. We can customize which heuristics are executed by modifying the `edge_sim_py/__main__.py` file.
+Once we are inside Poetry's virtual environment, we just need to run the simulator with parameters that dictate what is executed. A description of the simulator parameters is presented below.
+
+| **Parameter** | **Description**                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| -s            | Seed number that allows reproducibility (e.g., "1")                                           |
+| -i            | Dataset file (e.g.: "dataset_25occupation", "dataset_50occupation", "dataset_75occupation")   |
+| -a            | Algorithm that will be executed (e.g.: "never_follow, "follow_vehicle", "proposed_heuristic") |
+| -d            | Delay threshold for the proposed algorithm (e.g.: "0.7", "0.8, "0.9", "1.0"                   |
+| -p            | Provisioning time threshold for the proposed algorithm (e.g.: "0.7", "0.8, "0.9", "1.0"       |
+
+
+Based on the parameters above, we can run the simulation, as shown below.
 
 ```bash
-python3 -B -m edge_sim_py
+python3 -B -m simulator -s 1 -i "dataset_25occupation" -a "proposed_heuristic" -d "0.7" -p "0.7"
 ```
